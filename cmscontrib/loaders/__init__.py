@@ -16,6 +16,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from .italy_yaml import YamlLoader
+from .kompgen import KGTaskLoader#, KGUserLoader, KGContestLoader
 from .polygon import PolygonTaskLoader, PolygonUserLoader, PolygonContestLoader
 from .tps import TpsTaskLoader
 
@@ -23,6 +24,7 @@ from .tps import TpsTaskLoader
 LOADERS = dict(
     (loader_class.short_name, loader_class) for loader_class in [
         YamlLoader,
+        KGTaskLoader,# KGUserLoader, KGContestLoader,
         PolygonTaskLoader, PolygonUserLoader, PolygonContestLoader,
         TpsTaskLoader
     ]
