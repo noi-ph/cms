@@ -20,10 +20,12 @@ from collections import defaultdict
 import json
 import logging
 import os
-# from datetime import datetime, timedelta
+import stat
+from datetime import timedelta#, datetime
 
 # from cms import config
-from cms.db import Contest, User, Task, Statement, Dataset, Manager, Testcase
+from cms.db import Contest, User, Task, Statement, Attachment, Dataset, Manager, Testcase
+from cmscommon.constants import SCORE_MODE_MAX, SCORE_MODE_MAX_SUBTASK, SCORE_MODE_MAX_TOKENED_LAST
 # from cmscommon.crypto import build_password
 # from cmscontrib import touch
 from .base_loader import ContestLoader, TaskLoader, UserLoader
@@ -62,6 +64,7 @@ TASK_DEFAULTS = {
     'min_submission_interval': 60,
     'min_user_test_interval': 60,
     'score_precision': 0,
+    'score_mode': SCORE_MODE_MAX_SUBTASK,
 }
 
 def make_executable(filename):
@@ -89,24 +92,26 @@ class KGTaskLoader(TaskLoader):
     def task_has_changed(self):
         return True
 
-    def get_task(self, get_statement=True):
-
+    def _get_task_config(self):
         kg_task = os.path.join(self.path, KG_TASK)
         logger.info(f"Reading {kg_task}...")
         with open(kg_task) as file:
-            task_config = json.load(file)
+            return json.load(file)
+
+    def _get_task(self, task_config, get_statement=True):
 
         logger.info("Creating the Task object...")
 
-        task_fields = {field: kg_task.get(field, default) for field, default in TASK_DEFAULTS.items()}
+        task_fields = {field: task_config.get(field, default) for field, default in TASK_DEFAULTS.items()}
 
         name = task_fields['name']
         if not name: raise KGLoaderException("Invalid/Missing name")
 
         # set statement
         if get_statement:
+            task_fields['statements'] = {}
             lang = 'en'
-            statement_path = os.path.join(self.path, kg_task['statement'])
+            statement_path = os.path.join(self.path, task_config['statement'])
             if not os.path.isfile(statement_path):
                 raise KGLoaderException(f"Missing statement, expected in {statement_path}")
             digest = self.file_cacher.put_file_from_path(statement_path, f"Statement for Task: {name}")
@@ -125,7 +130,7 @@ class KGTaskLoader(TaskLoader):
                 if attachment in task_fields['attachments']:
                     raise KGLoaderException(f"Duplicate attachment: {attachment}")
                 digest = self.file_cacher.put_file_from_path(path, f"Attachment for Task: {name}")
-                task_fields['attachments'][attachments] = Attachment(attachments, digest)
+                task_fields['attachments'][attachment] = Attachment(attachment, digest)
 
         # set task-type-specific fields
         task_type = task_config['task_type']
@@ -134,10 +139,16 @@ class KGTaskLoader(TaskLoader):
         else:
             raise KGLoaderException(f"Unsupported task type: {task_type}")
 
-        task = Task(**task_fields)
+        # convert some fields to their required types
+        for field in 'min_submission_interval', 'min_user_test_interval':
+            if isinstance(task_fields[field], int):
+                task_fields[field] = timedelta(seconds=task_fields[field])
 
+        return Task(**task_fields)
+
+    def _create_and_attach_dataset(self, task_config, task):
         # create dataset
-        dataset_fields = {field: kg_task.get(field, default) for field, default in DATASET_DEFAULTS.items()}
+        dataset_fields = {field: task_config.get(field, default) for field, default in DATASET_DEFAULTS.items()}
         dataset_fields['task'] = task
         dataset_fields['description'] = "Default"
         dataset_fields['managers'] = {}
@@ -146,14 +157,14 @@ class KGTaskLoader(TaskLoader):
         checker_path = os.path.join(self.path, 'checker')
         if os.path.exists(checker_path):
             make_executable(checker_path) # force it to be executable
-            digest = self.file_cacher.put_file_from_path(checker_path, f"Checker for Task: {name}")
+            digest = self.file_cacher.put_file_from_path(checker_path, f"Checker for Task: {task.name}")
             dataset_fields['managers']['checker'] = Manager('checker', digest)
             evaluation_param = 'comparator'
         else:
             logger.warn("Checker not found, using diff")
             evaluation_param = 'diff'
 
-        dataset_fields['task_type_parameters'] = ['alone', [None, None], evaluation_param]
+        dataset_fields['task_type_parameters'] = ['alone', ["", ""], evaluation_param]
 
         # read test data from tests/
         test_bases = defaultdict(IOPair)
@@ -169,7 +180,7 @@ class KGTaskLoader(TaskLoader):
                 raise KGLoaderException(f"Unrecognize file found in tests/: {test_filename}")
 
         # TODO Python 3.8
-        bad_io = [io_pair for io_pair in test_bases if not (io_pair.input and io_pair.output)]
+        bad_io = [io_base for io_base, io_pair in test_bases.items() if not (io_pair.input and io_pair.output)]
         if bad_io:
             raise KGLoaderException(f"These tests have missing input or output: {bad_io}")
 
@@ -181,14 +192,22 @@ class KGTaskLoader(TaskLoader):
             dataset_fields['testcases'][test_basename] = Testcase(
                     test_basename, True,
                     self.file_cacher.put_file_from_path(os.path.join(tests_path, test_base.input),
-                        f"Input {test_basename} for Task: {name}"),
+                        f"Input {test_basename} for Task: {task.name}"),
                     self.file_cacher.put_file_from_path(os.path.join(tests_path, test_base.output),
-                        f"Output {test_basename} for Task: {name}"),
+                        f"Output {test_basename} for Task: {task.name}"),
                 )
+
+        # convert some fields to their required types
+        for field in 'time_limit',:
+            dataset_fields[field] = float(dataset_fields[field])
 
         dataset = Dataset(**dataset_fields)
         task.active_dataset = dataset
+        return dataset
 
-        logger.info(f"Task {name} successfully loaded.")
-
+    def get_task(self, get_statement=True):
+        task_config = self._get_task_config()
+        task = self._get_task(task_config, get_statement=get_statement)
+        self._create_and_attach_dataset(task_config, task)
+        logger.info(f"Task {task.name!r} successfully loaded.")
         return task
