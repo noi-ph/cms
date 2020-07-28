@@ -23,8 +23,14 @@ import os
 import stat
 from datetime import timedelta, datetime
 
-from cms.db import Contest, User, Task, Statement, Attachment, Dataset, Manager, Testcase
-from cmscommon.constants import SCORE_MODE_MAX, SCORE_MODE_MAX_SUBTASK, SCORE_MODE_MAX_TOKENED_LAST
+from cms.db import (
+    Contest, User, Task, Statement, Attachment, Dataset, Manager, Testcase,
+)
+from cmscommon.constants import (
+    SCORE_MODE_MAX,
+    SCORE_MODE_MAX_SUBTASK,
+    SCORE_MODE_MAX_TOKENED_LAST,
+)
 from cmscommon.crypto import build_password
 from .base_loader import ContestLoader, TaskLoader, UserLoader
 
@@ -45,6 +51,8 @@ class IOPair:
         self.output = output
         super().__init__()
 
+# these defaults may not necessarily match with CMS defaults
+
 DATASET_DEFAULTS = {
     'task_type': 'Batch',
     'score_type': 'Sum',
@@ -62,7 +70,7 @@ TASK_DEFAULTS = {
     'min_submission_interval': 60,
     'min_user_test_interval': 60,
     'score_precision': 0,
-    'score_mode': SCORE_MODE_MAX_SUBTASK,
+    'score_mode': SCORE_MODE_MAX,
 }
 
 LANGUAGE_MAPPING = {
@@ -94,7 +102,9 @@ CONTEST_DEFAULTS = {
 }
 
 def make_executable(filename):
-    os.chmod(filename, os.stat(filename).st_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
+    os.chmod(
+        filename,
+        os.stat(filename).st_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
 
 
 class KGTaskLoader(TaskLoader):
@@ -128,115 +138,138 @@ class KGTaskLoader(TaskLoader):
 
         # initialize the basic fields
         logger.info("Creating the Task object")
-        task_fields = {field: task_config.get(field, default) for field, default in TASK_DEFAULTS.items()}
+        fields = {
+            field: task_config.get(field, default)
+            for field, default in TASK_DEFAULTS.items()
+        }
 
-        name = task_fields['name']
+        name = fields['name']
         if not name: raise KGLoaderException("Invalid/Missing name")
 
         # load the statement
         if get_statement:
             logger.info("Loading the statement")
-            task_fields['statements'] = {}
+            fields['statements'] = {}
             lang = 'en'
             statement_path = os.path.join(self.path, task_config['statement'])
             if not os.path.isfile(statement_path):
-                raise KGLoaderException(f"Missing statement, expected in {statement_path}")
-            digest = self.file_cacher.put_file_from_path(statement_path, f"Statement for Task: {name}")
-            task_fields['primary_statements'] = [lang]
-            task_fields['statements'][lang] = Statement(lang, digest)
+                raise KGLoaderException(
+                    f"Missing statement, expected in {statement_path}")
+            digest = self.file_cacher.put_file_from_path(
+                statement_path, f"Statement for Task: {name}")
+            fields['primary_statements'] = [lang]
+            fields['statements'][lang] = Statement(lang, digest)
 
         # load the attachments
         # TODO Python 3.8
         attachments = task_config.get('attachments', [])
         if attachments:
             logger.info("Loading the attachments")
-            task_fields['attachments'] ={}
+            fields['attachments'] ={}
             for attachment in attachments:
                 path = os.path.join(self.path, 'attachments', attachment)
                 if not os.path.isfile(path):
-                    raise KGLoaderException(f"Missing attachment, expected in {path}")
-                if attachment in task_fields['attachments']:
-                    raise KGLoaderException(f"Duplicate attachment: {attachment}")
-                digest = self.file_cacher.put_file_from_path(path, f"Attachment for Task: {name}")
-                task_fields['attachments'][attachment] = Attachment(attachment, digest)
+                    raise KGLoaderException(
+                        f"Missing attachment, expected in {path}")
+                if attachment in fields['attachments']:
+                    raise KGLoaderException(
+                        f"Duplicate attachment: {attachment}")
+                digest = self.file_cacher.put_file_from_path(
+                    path, f"Attachment for Task: {name}")
+                fields['attachments'][attachment] = Attachment(
+                    attachment, digest)
 
         # set task-type-specific fields
         task_type = task_config['task_type']
         logger.info(f"The task type is {task_type}")
         if task_type == 'Batch':
-            task_fields['submission_format'] = [f'{name}.%l']
+            fields['submission_format'] = [f'{name}.%l']
         else:
             raise KGLoaderException(f"Unsupported task type: {task_type}")
 
         # convert some fields to their required types
         for field in 'min_submission_interval', 'min_user_test_interval':
-            if isinstance(task_fields[field], (int, float)):
-                task_fields[field] = timedelta(seconds=task_fields[field])
+            if isinstance(fields[field], (int, float)):
+                fields[field] = timedelta(seconds=fields[field])
 
-        return Task(**task_fields)
+        return Task(**fields)
 
     def _create_and_attach_dataset(self, task_config, task):
         # create dataset
         logger.info("Creating the Dataset")
-        dataset_fields = {field: task_config.get(field, default) for field, default in DATASET_DEFAULTS.items()}
-        dataset_fields['task'] = task
-        dataset_fields['description'] = "Default"
-        dataset_fields['managers'] = {}
+        fields = {
+            field: task_config.get(field, default)
+            for field, default in DATASET_DEFAULTS.items()
+        }
+        fields['task'] = task
+        fields['description'] = "Default"
+        fields['managers'] = {}
 
         # set checker
         checker_path = os.path.join(self.path, 'checker')
         if os.path.exists(checker_path):
             logging.info("Loading the checker")
             make_executable(checker_path) # force it to be executable
-            digest = self.file_cacher.put_file_from_path(checker_path, f"Checker for Task: {task.name}")
-            dataset_fields['managers']['checker'] = Manager('checker', digest)
+            digest = self.file_cacher.put_file_from_path(
+                checker_path, f"Checker for Task: {task.name}")
+            fields['managers']['checker'] = Manager('checker', digest)
             evaluation_param = 'comparator'
         else:
             logger.warn("Checker not found, using diff")
             evaluation_param = 'diff'
 
-        dataset_fields['task_type_parameters'] = ['alone', ["", ""], evaluation_param]
+        fields['task_type_parameters'] = [
+            'alone', ["", ""], evaluation_param
+        ]
 
         # read test data from tests/
         logger.info("Reading the test data")
         test_bases = defaultdict(IOPair)
         tests_path = os.path.join(self.path, 'tests')
         for test_filename in os.listdir(tests_path):
-            test_base, input_ext = os.path.splitext(os.path.basename(test_filename))
+            test_base, input_ext = os.path.splitext(
+                os.path.basename(test_filename))
             test_base = test_bases[test_base]
             if input_ext == '.in':
                 test_base.input = test_filename
             elif input_ext == '.ans':
                 test_base.output = test_filename
             else:
-                raise KGLoaderException(f"Unrecognize file found in tests/: {test_filename}")
+                raise KGLoaderException(
+                    f"Unrecognized file found in tests/: {test_filename}")
 
         # check for missing I/O
         # TODO Python 3.8
-        bad_io = [io_base for io_base, io_pair in test_bases.items() if not (io_pair.input and io_pair.output)]
+        bad_io = [io_base
+            for io_base, io_pair in test_bases.items()
+            if not (io_pair.input and io_pair.output)
+        ]
         if bad_io:
-            raise KGLoaderException(f"These tests have missing input or output: {bad_io}")
+            raise KGLoaderException(
+                f"These tests have missing input or output: {bad_io}")
 
         if not test_bases:
             raise KGLoaderException("tests/ must not be empty")
 
         # load test cases
         logger.info(f"Found {len(test_bases)} cases. Loading the test data")
-        dataset_fields['testcases'] = {}
+        fields['testcases'] = {}
         for test_basename, test_base in sorted(test_bases.items()):
-            dataset_fields['testcases'][test_basename] = Testcase(
+            fields['testcases'][test_basename] = Testcase(
                     test_basename, True,
-                    self.file_cacher.put_file_from_path(os.path.join(tests_path, test_base.input),
+                    self.file_cacher.put_file_from_path(os.path.join(
+                        tests_path, test_base.input),
                         f"Input {test_basename} for Task: {task.name}"),
-                    self.file_cacher.put_file_from_path(os.path.join(tests_path, test_base.output),
+                    self.file_cacher.put_file_from_path(os.path.join(
+                        tests_path, test_base.output),
                         f"Output {test_basename} for Task: {task.name}"),
                 )
 
         # convert some fields to their required types
         for field in 'time_limit',:
-            dataset_fields[field] = float(dataset_fields[field])
+            fields[field] = float(fields[field])
 
-        dataset = Dataset(**dataset_fields)
+        dataset = Dataset(**fields)
 
         # set it as the active dataset
         task.active_dataset = dataset
@@ -257,6 +290,11 @@ class KGTaskLoader(TaskLoader):
         return task
 
 
+def contest_path_candidates(path):
+    yield path
+    yield os.path.dirname(path) # needed when importing individual users
+
+
 class KGContestLoader(ContestLoader, UserLoader):
     """
     Load a contest and users stored using the KompGen cms-compiled format.
@@ -272,8 +310,8 @@ class KGContestLoader(ContestLoader, UserLoader):
 
     @staticmethod
     def detect(path):
-        if not os.path.isdir(path): path = os.path.dirname(path)
-        return os.path.exists(os.path.join(path, KG_CONTEST))
+        return any(os.path.exists(os.path.join(directory, KG_CONTEST))
+            for directory in contest_path_candidates(path))
 
     def user_has_changed(self):
         return True
@@ -285,17 +323,26 @@ class KGContestLoader(ContestLoader, UserLoader):
         return KGTaskLoader(os.path.join(self.path, taskname), self.file_cacher)
 
     def _get_contest_config(self):
-        kg_contest = os.path.join(self.path, KG_CONTEST)
-        logger.info(f"Reading {kg_contest}")
-        with open(kg_contest) as file:
-            return json.load(file)
+        for directory in contest_path_candidates(self.path):
+            kg_contest = os.path.join(directory, KG_CONTEST)
+            if os.path.exists(kg_contest):
+                logger.info(f"Reading {kg_contest}")
+                with open(kg_contest) as file:
+                    return json.load(file)
+        else:
+            raise KGLoaderException(
+                f"Couldn't find contest config file {KG_CONTEST}")
 
     def _get_user_list(self):
-        path = self.path if os.path.isdir(self.path) else os.path.dirname(self.path)
-        kg_users = os.path.join(path, KG_USERS)
-        logging.info(f"Reading {kg_users}")
-        with open(kg_users) as file:
-            return json.load(file)
+        for directory in contest_path_candidates(self.path):
+            kg_users = os.path.join(directory, KG_USERS)
+            if os.path.exists(kg_users):
+                logging.info(f"Reading {kg_users}")
+                with open(kg_users) as file:
+                    return json.load(file)
+        else:
+            raise KGLoaderException(
+                f"Couldn't find the user list {KG_USERS}")
 
     def _get_minimal_participations(self):
         participations = []
@@ -310,22 +357,31 @@ class KGContestLoader(ContestLoader, UserLoader):
 
     def _get_contest(self, contest_config):
 
-        contest_fields = {field: contest_config.get(field, default) for field, default in CONTEST_DEFAULTS.items()}
+        # initialize the basic fields
+        logger.info("Creating the Contest object")
+        fields = {
+            field: contest_config.get(field, default)
+            for field, default in CONTEST_DEFAULTS.items()
+        }
 
         # convert lang names
-        contest_fields['languages'] = [LANGUAGE_MAPPING.get(lang, lang) for lang in contest_fields['languages']]
+        fields['languages'] = [
+            LANGUAGE_MAPPING.get(lang, lang)
+            for lang in fields['languages']
+        ]
 
         # convert datetimes
         for field in 'start', 'stop':
-            if isinstance(contest_fields[field], (int, float)):
-                contest_fields[field] = datetime.utcfromtimestamp(contest_fields[field])
+            if isinstance(fields[field], (int, float)):
+                fields[field] = datetime.utcfromtimestamp(
+                    fields[field])
 
         # convert timedeltas
         for field in 'min_submission_interval', 'min_user_test_interval':
-            if isinstance(contest_fields[field], (int, float)):
-                contest_fields[field] = timedelta(seconds=contest_fields[field])
+            if isinstance(fields[field], (int, float)):
+                fields[field] = timedelta(seconds=fields[field])
 
-        return Contest(**contest_fields)
+        return Contest(**fields)
 
     def get_user(self):
         username = os.path.basename(self.path)
