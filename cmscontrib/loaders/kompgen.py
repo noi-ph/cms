@@ -390,8 +390,9 @@ class KGContestLoader(ContestLoader, UserLoader):
                 return User(
                         username=user['username'],
                         password=build_password(user['password']),
-                        first_name=user['first_name'] or '',
-                        last_name=user['last_name'] or '',
+                        first_name=user.get('first_name') or '',
+                        last_name=user.get('last_name') or '',
+                        timezone=user.get('timezone'),
                     )
         else:
             raise KGLoaderException(f"Unknown user: {username}")
