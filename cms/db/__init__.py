@@ -46,7 +46,7 @@ __all__ = [
     # session
     "Session", "ScopedSession", "SessionGen", "custom_psycopg2_connection",
     # types
-    "CastingArray", "Codename", "Filename", "FilenameSchema",
+    "CastingArray", "Codename", "Username", "Filename", "FilenameSchema",
     "FilenameSchemaArray", "Digest",
     # base
     "metadata", "Base",
