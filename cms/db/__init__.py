@@ -91,7 +91,7 @@ metadata = MetaData(engine)
 from .session import Session, ScopedSession, SessionGen, \
     custom_psycopg2_connection
 
-from .types import CastingArray, Codename, Filename, FilenameSchema, \
+from .types import CastingArray, Codename, Username, Filename, FilenameSchema, \
     FilenameSchemaArray, Digest
 from .base import Base
 from .fsobject import FSObject, LargeObject

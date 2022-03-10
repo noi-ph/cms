@@ -48,6 +48,29 @@ class CastingArray(ARRAY):
         return sqlalchemy.cast(bindvalue, self)
 
 
+class Username(TypeDecorator):
+    """Check that the column uses a limited alphabet.
+
+    Namely: latin letters (upper and lowercase), arabic digits, the
+    underscore, the period, and the dash. It must also be non-empty.
+
+    """
+
+    domain_name = "USERNAME"
+    impl = Unicode
+
+    @classmethod
+    def get_create_command(cls):
+        return DDL("CREATE DOMAIN %(domain)s VARCHAR "
+                   "CHECK (VALUE ~ '^[A-Za-z0-9_-\\.]+$')",
+                   context={"domain": cls.domain_name})
+
+    @classmethod
+    def get_drop_command(cls):
+        return DDL("DROP DOMAIN %(domain)s",
+                   context={"domain": cls.domain_name})
+
+
 class Codename(TypeDecorator):
     """Check that the column uses a limited alphabet.
 
