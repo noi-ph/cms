@@ -70,6 +70,14 @@ class Username(TypeDecorator):
         return DDL("DROP DOMAIN %(domain)s",
                    context={"domain": cls.domain_name})
 
+event.listen(metadata, "before_create", Username.get_create_command())
+event.listen(metadata, "after_drop", Username.get_drop_command())
+
+
+@compiles(Username)
+def compile_codename(element, compiler, **kw):
+    return Username.domain_name
+
 
 class Codename(TypeDecorator):
     """Check that the column uses a limited alphabet.
