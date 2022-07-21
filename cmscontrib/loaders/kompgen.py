@@ -129,7 +129,7 @@ class KGTaskLoader(TaskLoader):
 
     def _get_task_config(self):
         kg_task = os.path.join(self.path, KG_TASK)
-        logger.info(f"Reading {kg_task}")
+        logger.info(f"Reading task info from {kg_task}")
         with open(kg_task) as file:
             return json.load(file)
 
@@ -341,7 +341,7 @@ class KGContestLoader(ContestLoader, UserLoader):
         for directory in contest_path_candidates(self.path):
             kg_contest = os.path.join(directory, KG_CONTEST)
             if os.path.exists(kg_contest):
-                logger.info(f"Reading {kg_contest}")
+                logger.info(f"Reading contest data from {kg_contest}")
                 with open(kg_contest) as file:
                     return json.load(file)
         else:
@@ -352,7 +352,7 @@ class KGContestLoader(ContestLoader, UserLoader):
         for directory in contest_path_candidates(self.path):
             kg_users = os.path.join(directory, KG_USERS)
             if os.path.exists(kg_users):
-                logging.info(f"Reading {kg_users}")
+                logging.info(f"Reading users from {kg_users}")
                 with open(kg_users) as file:
                     return json.load(file)
         else:
@@ -360,6 +360,7 @@ class KGContestLoader(ContestLoader, UserLoader):
                 f"Couldn't find the user list {KG_USERS}")
 
     def _get_minimal_participations(self):
+        logging.info("Getting participation usernames and passwords")
         participations = []
         for user in self._get_user_list():
             if user['type'] == 'user':
@@ -367,6 +368,11 @@ class KGContestLoader(ContestLoader, UserLoader):
                         'username': user['username'],
                         'password': build_password(user['password']),
                     })
+            else:
+                logging.info(
+                    f"Skipping {user['username']} (display name "
+                    f"{user['display_name']}) because it's not of type 'user' "
+                    f"(type = {user['type']})")
 
         return participations
 
