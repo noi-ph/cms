@@ -74,8 +74,8 @@ TASK_DEFAULTS = {
 }
 
 LANGUAGE_MAPPING = {
-    'c++': 'C++11 / g++',
-    'cpp': 'C++11 / g++',
+    'c++': 'C++17 / g++',
+    'cpp': 'C++17 / g++',
     'java': 'Java / JDK',
     'python3': 'Python 3 / CPython',
     'pypy3': 'Python 3 / PyPy',
