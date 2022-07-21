@@ -17,11 +17,11 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from collections import defaultdict
+from datetime import datetime, timedelta
 import json
 import logging
 import os
 import stat
-from datetime import timedelta, datetime
 
 from cms.db import (
     Contest, User, Task, Statement, Attachment, Dataset, Manager, Testcase,
@@ -51,7 +51,7 @@ class IOPair:
         self.output = output
         super().__init__()
 
-# these defaults may not necessarily match with CMS defaults
+# these defaults may not necessarily match CMS defaults
 
 DATASET_DEFAULTS = {
     'task_type': 'Batch',
@@ -109,11 +109,10 @@ def make_executable(filename):
 
 
 class KGTaskLoader(TaskLoader):
-    """
-    Load a task stored using the KompGen cms-compiled format.
+    """Load a task stored using the KompGen cms-compiled format.
 
     Given the filesystem location of a task prepared via KompGen and compiled
-    via `kg make all` and then kg kompile cms` (by default located at
+    via `kg make all` and then `kg kompile cms` (by default located at
     `kgkompiled/cms`), parse the contents to produce a CMS Task object.
 
     Not all options are supported yet.
@@ -145,7 +144,8 @@ class KGTaskLoader(TaskLoader):
         }
 
         name = fields['name']
-        if not name: raise KGLoaderException("Invalid/Missing name")
+        if not name:
+            raise KGLoaderException("Invalid/Missing name")
 
         # load the statement
         if get_statement:
@@ -166,7 +166,7 @@ class KGTaskLoader(TaskLoader):
         attachments = task_config.get('attachments', [])
         if attachments:
             logger.info("Loading the attachments")
-            fields['attachments'] ={}
+            fields['attachments'] = {}
             for attachment in attachments:
                 path = os.path.join(self.path, 'attachments', attachment)
                 if not os.path.isfile(path):
@@ -183,7 +183,7 @@ class KGTaskLoader(TaskLoader):
         # set task-type-specific fields
         task_type = task_config['task_type']
         logger.info(f"The task type is {task_type}")
-        if task_type == 'Batch':
+        if task_type in {'Batch', 'Communication'}:
             fields['submission_format'] = [f'{name}.%l']
         else:
             raise KGLoaderException(f"Unsupported task type: {task_type}")
@@ -219,9 +219,25 @@ class KGTaskLoader(TaskLoader):
             logger.warn("Checker not found, using diff")
             evaluation_param = 'diff'
 
-        fields['task_type_parameters'] = [
-            'alone', ["", ""], evaluation_param
-        ]
+        # set manager ("interactor")
+        manager_path = os.path.join(self.path, 'manager')
+        if os.path.exists(manager_path):
+            logging.info("Loading the manager")
+            make_executable(manager_path) # force it to be executable
+            digest = self.file_cacher.put_file_from_path(
+                manager_path, f"Manager for Task: {task.name}")
+            fields['managers']['manager'] = Manager('manager', digest)
+
+        # 'alone' means there's no accompanying grader.cpp
+        if fields['task_type'] == 'Batch':
+            fields['task_type_parameters'] = [
+                'alone', ["", ""], evaluation_param,
+            ]
+
+        if fields['task_type'] == 'Communication':
+            fields['task_type_parameters'] = [
+                task_config['node_count'], 'alone', task_config['io_type'],
+            ]
 
         # read test data from tests/
         logger.info("Reading the test data")
@@ -297,8 +313,7 @@ def contest_path_candidates(path):
 
 
 class KGContestLoader(ContestLoader, UserLoader):
-    """
-    Load a contest and users stored using the KompGen cms-compiled format.
+    """Load a contest and users stored using the KompGen cms-compiled format.
 
     Given the filesystem location of a contest prepared via KompGen and compiled
     via `kg contest cms`, parse the contents to produce a CMS Task object.
