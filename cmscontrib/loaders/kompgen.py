@@ -399,7 +399,7 @@ class KGContestLoader(ContestLoader, UserLoader):
                     fields[field])
 
         # convert timedeltas
-        for field in 'min_submission_interval', 'min_user_test_interval':
+        for field in 'min_submission_interval', 'min_user_test_interval', 'per_user_time':
             if isinstance(fields[field], (int, float)):
                 fields[field] = timedelta(seconds=fields[field])
 
