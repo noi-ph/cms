@@ -179,7 +179,7 @@ def evaluation_step_before_run(sandbox, command,
     # Set sandbox parameters suitable for evaluation.
     if time_limit is not None:
         sandbox.timeout = time_limit
-        sandbox.wallclock_timeout = 2 * time_limit + 1
+        sandbox.wallclock_timeout = 5 * time_limit + 1
     else:
         sandbox.timeout = None
         sandbox.wallclock_timeout = None
