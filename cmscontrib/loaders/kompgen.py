@@ -77,6 +77,7 @@ LANGUAGE_MAPPING = {
     'c++': 'C++17 / g++',
     'cpp': 'C++17 / g++',
     'java': 'Java / JDK',
+    'python3.11': 'Python 3.11 / CPython',
     'python3': 'Python 3 / CPython',
     'pypy3': 'Python 3 / PyPy',
 }

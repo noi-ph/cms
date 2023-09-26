@@ -35,7 +35,7 @@ from sqlalchemy.types import Boolean, Integer, String, Unicode, DateTime, \
     Interval
 
 from cmscommon.crypto import generate_random_password, build_password
-from . import CastingArray, Codename, Base, Admin, Contest
+from . import CastingArray, Codename, Username, Base, Admin, Contest
 
 
 class User(Base):
@@ -60,7 +60,7 @@ class User(Base):
 
     # Username and password to log in the CWS.
     username = Column(
-        Codename,
+        Username,
         nullable=False,
         unique=True)
     password = Column(
