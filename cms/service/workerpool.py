@@ -50,7 +50,7 @@ class WorkerPool:
     WORKER_DISABLED = "disabled"
 
     # Seconds after which we declare a worker stale.
-    WORKER_TIMEOUT = timedelta(seconds=6000)
+    WORKER_TIMEOUT = timedelta(seconds=600)
 
     def __init__(self, service):
         """service (Service): the EvaluationService using this
