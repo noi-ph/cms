@@ -34,8 +34,10 @@ import re
 
 try:
     import tornado4.web as tornado_web
+    from tornado4.httputil import HTTPFile
 except ImportError:
     import tornado.web as tornado_web
+    from tornado.httputil import HTTPFile
 from sqlalchemy.orm import joinedload
 
 from cms import config, FEEDBACK_LEVEL_FULL
@@ -61,6 +63,22 @@ def N_(msgid):
     return msgid
 
 
+def extract_files_from_request(request):
+    files = {**request.files}
+
+    for arg, values in request.body_arguments.items():
+        prefix = 'raw:'
+        if arg.startswith(prefix) and any(value.strip() for value in values):
+            filename = arg[len(prefix):] # python3.8 doesn't have removeprefix
+            files.setdefault(filename, []).extend(HTTPFile(
+                filename=filename,
+                body=value,
+                content_type='application/octet-stream',
+            ) for value in values if value.strip())
+
+    return files
+
+
 class SubmitHandler(ContestHandler):
     """Handles the received submissions.
 
@@ -81,9 +99,11 @@ class SubmitHandler(ContestHandler):
         query_args = dict()
 
         try:
+
+
             submission = accept_submission(
                 self.sql_session, self.service.file_cacher, self.current_user,
-                task, self.timestamp, self.request.files,
+                task, self.timestamp, extract_files_from_request(self.request),
                 self.get_argument("language", None), official)
             self.sql_session.commit()
         except UnacceptableSubmission as e:

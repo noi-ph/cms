@@ -247,12 +247,23 @@ $(document).ready(function () {
             <fieldset>
 {% for filename in task.submission_format %}
                 <div class="control-group">
+                    
+                    {# TODO make this an option in the admin somewhere (option per task) #}
+
+                    {#
                     <label class="control-label" for="input{{ loop.index0 }}">{{ filename|replace(".%l", ": ") }}</label>
                     <div class="controls">
                         <input type="file" class="input-xlarge"
                                id="input{{ loop.index0 }}" name="{{ filename }}"
                                onchange="CMS.CWSUtils.filter_languages($(this).parents('form').find('select[name=language] option'),
                                                                        $(this).parents('form').find('input[type=file]'))"/>
+                    </div>
+                    #}
+
+                    <label class="control-label" for="raw-input{{ loop.index0 }}">{{ filename|replace(".%l", ": ")|replace(".txt", ": ") }}</label>
+                    <div class="controls">
+                        <input type="text" class="input-xlarge"
+                               id="raw-input{{ loop.index0 }}" name="raw:{{ filename }}"/>
                     </div>
                 </div>
 {% endfor %}
