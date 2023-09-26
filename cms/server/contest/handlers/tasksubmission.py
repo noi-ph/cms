@@ -72,7 +72,7 @@ def extract_files_from_request(request):
             filename = arg[len(prefix):] # python3.8 doesn't have removeprefix
             files.setdefault(filename, []).extend(HTTPFile(
                 filename=filename,
-                body=value,
+                body=value.strip(),
                 content_type='application/octet-stream',
             ) for value in values if value.strip())
 
