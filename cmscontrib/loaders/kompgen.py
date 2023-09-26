@@ -182,7 +182,12 @@ class KGTaskLoader(TaskLoader):
         # set task-type-specific fields
         task_type = task_config['task_type']
         logger.info(f"The task type is {task_type}")
-        if task_type in {'Batch', 'Communication'}:
+        if task_type == 'OutputOnly':
+            fields['submission_format'] = [
+                f'output_{codename}.txt'
+                for codename in task_config['codenames']
+            ]
+        elif task_type in {'Batch', 'Communication'}:
             fields['submission_format'] = [f'{name}.%l']
         else:
             raise KGLoaderException(f"Unsupported task type: {task_type}")
@@ -226,6 +231,11 @@ class KGTaskLoader(TaskLoader):
             digest = self.file_cacher.put_file_from_path(
                 manager_path, f"Manager for Task: {task.name}")
             fields['managers']['manager'] = Manager('manager', digest)
+
+        if fields['task_type'] == 'OutputOnly':
+            fields['task_type_parameters'] = [
+                evaluation_param,
+            ]
 
         # 'alone' means there's no accompanying grader.cpp
         if fields['task_type'] == 'Batch':
