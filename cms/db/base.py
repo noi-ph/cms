@@ -32,7 +32,7 @@ from sqlalchemy.types import \
     Boolean, Integer, Float, String, Unicode, Enum, DateTime, Interval, \
     BigInteger
 
-from . import engine, metadata, CastingArray, Codename, Filename, \
+from . import engine, metadata, CastingArray, Codename, Username, Filename, \
     FilenameSchema, FilenameSchemaArray, Digest
 
 
@@ -46,6 +46,7 @@ _TYPE_MAP = {
     Unicode: str,
     String: str,  # TODO Use bytes.
     Codename: str,
+    Username: str,
     Filename: str,
     FilenameSchema: str,
     Digest: str,

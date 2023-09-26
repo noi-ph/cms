@@ -47,7 +47,7 @@ from sqlalchemy.dialects.postgresql import ARRAY, CIDR, JSONB
 
 import cms.db as class_hook
 from cms import utf8_decoder
-from cms.db import version as model_version, Codename, Filename, \
+from cms.db import version as model_version, Codename, Username, Filename, \
     FilenameSchema, FilenameSchemaArray, Digest, SessionGen, Contest, \
     Submission, SubmissionResult, User, Participation, UserTest, \
     UserTestResult, PrintJob, Announcement, init_db, drop_db, enumerate_files
@@ -98,7 +98,7 @@ def decode_value(type_, value):
         return None
     elif isinstance(type_, (
             Boolean, Integer, Float, String, Unicode, Enum, JSONB, Codename,
-            Filename, FilenameSchema, Digest)):
+            Username, Filename, FilenameSchema, Digest)):
         return value
     elif isinstance(type_, DateTime):
         try:

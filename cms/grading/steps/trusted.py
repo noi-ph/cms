@@ -144,7 +144,7 @@ def trusted_step(sandbox, commands):
     sandbox.preserve_env = True
     sandbox.max_processes = config.trusted_sandbox_max_processes
     sandbox.timeout = config.trusted_sandbox_max_time_s
-    sandbox.wallclock_timeout = 2 * sandbox.timeout + 1
+    sandbox.wallclock_timeout = 10 * sandbox.timeout + 1
     sandbox.address_space = config.trusted_sandbox_max_memory_kib * 1024
 
     # Run the trusted commands.
