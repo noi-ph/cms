@@ -97,13 +97,13 @@
             <th>{% trans %}Type{% endtrans %}</th>
             <td colspan="2">{% set task_type = get_task_type(dataset=task.active_dataset) %}{{ task_type.name }}</td>
         </tr>
-{% if task.active_dataset.time_limit is not none %}
+{% if task.active_dataset.time_limit is not none and task.active_dataset.task_type != "OutputOnly" %}
         <tr>
             <th>{% trans %}Time limit{% endtrans %}</th>
             <td colspan="2">{{ task.active_dataset.time_limit|format_duration(length="long") }}</td>
         </tr>
 {% endif %}
-{% if task.active_dataset.memory_limit is not none %}
+{% if task.active_dataset.memory_limit is not none and task.active_dataset.task_type != "OutputOnly" %}
         <tr>
             <th>{% trans %}Memory limit{% endtrans %}</th>
             <td colspan="2">{{ task.active_dataset.memory_limit|format_size }}</td>

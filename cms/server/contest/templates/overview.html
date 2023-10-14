@@ -211,21 +211,30 @@
             <th>{{ t_iter.name }}</th>
             <td>{{ t_iter.title }}</td>
             <td>
-    {% if t_iter.active_dataset.time_limit is not none %}
+    {% if t_iter.active_dataset.time_limit is not none and t_iter.active_dataset.task_type != "OutputOnly" %}
         {{ t_iter.active_dataset.time_limit|format_duration(length="long") }}
     {% else %}
         {% trans %}N/A{% endtrans %}
     {% endif %}
             </td>
             <td>
-    {% if t_iter.active_dataset.memory_limit is not none %}
+    {% if t_iter.active_dataset.memory_limit is not none and t_iter.active_dataset.task_type != "OutputOnly" %}
         {{ t_iter.active_dataset.memory_limit|format_size }}
     {% else %}
         {% trans %}N/A{% endtrans %}
     {% endif %}
             </td>
             <td>{{ get_task_type(dataset=t_iter.active_dataset).name }}</td>
-            <td>{{ t_iter.submission_format|map("replace", ".%l", extensions)|join(" ") }}</td>
+
+    {# TODO in the future, instead of this condition, simply use the option in the admin about Euler-style problems #}
+            <td>
+    {% if t_iter.active_dataset.task_type != "OutputOnly" %}
+        {{ t_iter.submission_format|map("replace", ".%l", extensions)|join(" ") }}
+    {% else %}
+        {% trans %}N/A{% endtrans %}
+    {% endif %}
+            </td>
+
     {% if tokens_contest != TOKEN_MODE_DISABLED and tokens_tasks != TOKEN_MODE_DISABLED %}
             <td>
         {% if t_iter.token_mode == TOKEN_MODE_FINITE or t_iter.token_mode == TOKEN_MODE_INFINITE %}

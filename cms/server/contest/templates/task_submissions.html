@@ -248,7 +248,7 @@ $(document).ready(function () {
 {% for filename in task.submission_format %}
                 <div class="control-group">
                     
-                    {# TODO make this an option in the admin somewhere (option per task) #}
+                    {# TODO make this an option in the admin somewhere (option per task), say "Euler-style" #}
 
                     {#
                     <label class="control-label" for="input{{ loop.index0 }}">{{ filename|replace(".%l", ": ") }}</label>
@@ -260,9 +260,10 @@ $(document).ready(function () {
                     </div>
                     #}
 
-                    <label class="control-label" for="raw-input{{ loop.index0 }}">{{ filename|replace(".%l", ": ")|replace(".txt", ": ") }}</label>
+                    <label class="control-label" for="raw-input{{ loop.index0 }}">{{ filename|replace(".%l", ": ")|replace(".txt", ": ")|replace("output_", "Subtask ") }}</label>
                     <div class="controls">
                         <input type="text" class="input-xlarge"
+                               placeholder="Final Answer (NOT code), e.g., 12345"
                                id="raw-input{{ loop.index0 }}" name="raw:{{ filename }}"/>
                     </div>
                 </div>
@@ -287,7 +288,7 @@ $(document).ready(function () {
             </fieldset>
         </form>
     </div>
-{% if task.submission_format|length > 1 and not task.submission_format|any("endswith", ".%l") %}
+{% if task.submission_format|length > 1 and not task.submission_format|any("endswith", ".%l") and task.active_dataset.task_type != "OutputOnly" %}
     <div class="span4">
         <form class="form-horizontal" enctype="multipart/form-data" action="{{ contest_url("tasks", task.name, "submit") }}" method="POST">
             {{ xsrf_form_html|safe }}
