@@ -367,4 +367,8 @@ def get_global_statement(session, contest=None):
     if len({statement.digest for lang_code, statement in statements}) != 1:
         return None
 
+    # there must be more than one statement
+    if len(statements) < 2:
+        return None
+
     return next(statement for lang_code, statement in statements)
