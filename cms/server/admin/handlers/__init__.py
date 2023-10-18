@@ -139,6 +139,7 @@ HANDLERS = [
     (r"/contest/([0-9]+)/tasks/add", AddContestTaskHandler),
 
     # Contest's global statement
+
     (r"/contest/([0-9]+)/globalstatement", ContestStatementHandler),
 
     # Contest's submissions / user tests
