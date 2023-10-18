@@ -13,9 +13,17 @@
 </div>
 
 
-<h2>{% trans %}Statement{% endtrans %}</h2>
+<h2>{% if global_statement %}{% trans %}Statements{% endtrans %}{% else %}{% trans %}Statement{% endtrans %}{% endif %}</h2>
 
-{% if task.statements|length == 0 %}
+{% if global_statement %}
+<div class="row statement one_statement">
+    <div class="span9">
+    {% for lang_code in task.statements %}
+        <a href="{{ contest_url("globalstatement") }}" class="btn btn-large btn-success">{% trans %}Download contest statements (all tasks){% endtrans %}</a>
+    {% endfor %}
+    </div>
+</div>
+{% elif task.statements|length == 0 %}
 <div class="row statement no_statements">
     <div class="span9">
         {% trans %}no statement available{% endtrans %}

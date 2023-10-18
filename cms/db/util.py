@@ -337,3 +337,38 @@ def enumerate_files(
     digests = set(r[0] for r in session.execute(union(*queries)))
     digests.discard(Digest.TOMBSTONE)
     return digests
+
+
+def get_global_statement(session, contest=None):
+    """Return the global statement of the contest, if it exists.
+
+    If this contest has more than one task, each having a single statement,
+    and they're all the same, return that. Otherwise, return None."""
+    if contest is None:
+        return None
+
+    # just get everything!
+    # There's probably a more efficient way to do this though...
+
+    # each task must have exactly one statement
+    if not all(len(task.statements) == 1 for task in contest.tasks):
+        return None
+
+    statements = [(lang_code, statement)
+        for task in contest.tasks
+        for lang_code, statement in task.statements.items()
+    ]
+
+    # there must be exactly one language code
+    if len({lang_code for lang_code, statement in statements}) != 1:
+        return None
+
+    # there must be exactly one digest
+    if len({statement.digest for lang_code, statement in statements}) != 1:
+        return None
+
+    # there must be more than one statement
+    if len(statements) < 2:
+        return None
+
+    return next(statement for lang_code, statement in statements)

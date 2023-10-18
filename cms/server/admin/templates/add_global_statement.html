@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+
+{% block core %}
+<div class="core_title">
+  <h1><a href="{{ url("contest", contest.id) }}">{{ contest.name }}</a> - Upload global statement</h1>
+  <h1>WARNING: THIS WILL OVERWRITE ALL EXISTING STATEMENTS!!</h1>
+</div>
+<form enctype="multipart/form-data" action="{{ url("contest", contest.id, "globalstatement") }}" method="POST">
+  {{ xsrf_form_html|safe }}
+  Language code: <input type="text" name="language"/><br/>
+  <input type="file" name="statement"/><br/>
+  <input type="submit" value="Upload">
+  <input type="Reset" >
+</form>
+{% endblock core %}
