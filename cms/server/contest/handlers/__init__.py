@@ -68,6 +68,8 @@ HANDLERS = [
     (r"/printing", PrintingHandler),
     (r"/documentation", DocumentationHandler),
 
+    # Contest stuff
+
     (r"/globalstatement", ContestStatementViewHandler),
 
     # Tasks
