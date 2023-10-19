@@ -44,6 +44,8 @@ from .contestquestion import \
     QuestionClaimHandler
 from .contestranking import \
     RankingHandler
+from .conteststatement import \
+    ContestStatementHandler
 from .contestsubmission import \
     ContestSubmissionsHandler, \
     ContestUserTestsHandler
@@ -135,6 +137,10 @@ HANDLERS = [
 
     (r"/contest/([0-9]+)/tasks", ContestTasksHandler),
     (r"/contest/([0-9]+)/tasks/add", AddContestTaskHandler),
+
+    # Contest's global statement
+
+    (r"/contest/([0-9]+)/globalstatement", ContestStatementHandler),
 
     # Contest's submissions / user tests
 

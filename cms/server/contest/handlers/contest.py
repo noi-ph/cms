@@ -38,13 +38,13 @@ except ImportError:
     import tornado.web as tornado_web
 
 from cms import config, TOKEN_MODE_MIXED
-from cms.db import Contest, Submission, Task, UserTest
+from cms.db import Contest, Submission, Task, UserTest, get_global_statement
 from cms.locale import filter_language_codes
-from cms.server import FileHandlerMixin
+from cms.server import FileHandlerMixin, multi_contest
 from cms.server.contest.authentication import authenticate_request
 from cmscommon.datetime import get_timezone
 from .base import BaseHandler
-from ..phase_management import compute_actual_phase
+from ..phase_management import compute_actual_phase, actual_phase_required
 
 
 logger = logging.getLogger(__name__)
@@ -160,6 +160,9 @@ class ContestHandler(BaseHandler):
             self.set_secure_cookie(cookie_name, cookie, expires_days=None)
 
         return participation
+
+    def get_global_statement(self):
+        return get_global_statement(self.sql_session, self.contest)
 
     def render_params(self):
         ret = super().render_params()
@@ -287,3 +290,23 @@ class ContestHandler(BaseHandler):
 
 class FileHandler(ContestHandler, FileHandlerMixin):
     pass
+
+
+class ContestStatementViewHandler(FileHandler):
+    """Shows the global statement file of a contest.
+
+    """
+    @tornado_web.authenticated
+    @actual_phase_required(0, 3)
+    @multi_contest
+    def get(self):
+        statement = get_global_statement(self.sql_session, self.contest)
+        if statement is None:
+            raise tornado_web.HTTPError(404)
+
+        digest = statement.digest
+        self.sql_session.close()
+
+        filename = "%s.pdf" % self.contest.name
+
+        self.fetch(digest, "application/pdf", filename)

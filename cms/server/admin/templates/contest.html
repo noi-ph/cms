@@ -81,6 +81,22 @@
       </td>
       <td><input type="text" name="score_precision" value="{{ contest.score_precision }}"></td>
     </tr>
+    <tr>
+      <td>
+        <span class="info" title="The global statement of this contest."></span>
+        Global statement
+{% if admin.permission_all %}
+        [<a href="{{ url("contest", contest.id, "globalstatement") }}">set</a>]
+{% endif %}
+      </td>
+      <td>
+        {% if global_statement %}
+        <a href="{{ url("file", global_statement.digest, "statement.pdf") }}">Global statement</a>
+        {% else %}
+        No global statement.
+        {% endif %}
+      </td>
+    </tr>
 
     <tr><td colspan=2><h2>Logging in</h2></td></tr>
     <tr>

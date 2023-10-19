@@ -26,6 +26,8 @@
 from .communication import \
     CommunicationHandler, \
     QuestionHandler
+from .contest import \
+    ContestStatementViewHandler
 from .main import \
     LoginHandler, \
     LogoutHandler, \
@@ -65,6 +67,10 @@ HANDLERS = [
     (r"/notifications", NotificationsHandler),
     (r"/printing", PrintingHandler),
     (r"/documentation", DocumentationHandler),
+
+    # Contest stuff
+
+    (r"/globalstatement", ContestStatementViewHandler),
 
     # Tasks
 
