@@ -115,7 +115,7 @@ class BatchNoInput(TaskType):
     def name(self):
         """See TaskType.name."""
         # TODO add some details if a grader/comparator is used, etc...
-        return "BatchNoInput"
+        return "Batch (no input)"
 
     def __init__(self, parameters):
         super().__init__(parameters)
