@@ -115,7 +115,7 @@ class Config:
         self.compilation_sandbox_max_memory_kib = 512 * 1024  # 512 MiB
         # Max processes, CPU time (s), memory (KiB) for trusted runs.
         self.trusted_sandbox_max_processes = 1000
-        self.trusted_sandbox_max_time_s = 10.0
+        self.trusted_sandbox_max_time_s = 120.0
         self.trusted_sandbox_max_memory_kib = 4 * 1024 * 1024  # 4 GiB
 
         # WebServers.
